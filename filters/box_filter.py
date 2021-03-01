@@ -1,11 +1,5 @@
 from PIL import Image
-import os
-
-
-def loop_through_pixels(image):
-    for x in range(image.width):
-        for y in range(image.height):
-            print(image.getpixel((x, y)))
+import time
 
 
 def black_white_converter(image, threshold):
@@ -20,13 +14,13 @@ def black_white_converter(image, threshold):
     return out_image
 
 
-def create_padding(image):
+def create_padding(image, padding_size):
     width, height = image.size
     color = 0 if image.mode == "L" else (0, 0, 0)
     # Create black background, larger than original image
-    out_image = Image.new(image.mode, (width + 2, height + 2), color)
+    out_image = Image.new(image.mode, (width + padding_size * 2, height + padding_size * 2), color)
     # Paste the original image upon the black background to create padding
-    out_image.paste(image, (1, 1))
+    out_image.paste(image, (padding_size, padding_size))
     return out_image
 
 
@@ -67,6 +61,80 @@ def box_filter(image):
                 square.append(square_row)
             pix = pixel_value_gray(square) if image.mode == "L" else calculate_pixel_value(square)
             out_image.putpixel((x, y), pix)
+    return out_image
+
+
+# Optimized version
+def box_filter_optimized(image):
+    out_image = image.copy()
+    # Row summation
+    for y in range(2, out_image.height - 1):
+        for x in range(2, out_image.width - 1):
+            pix_sum = 0
+            for x1 in range(x-1, x+2):
+                pix_sum += image.getpixel((x1, y))
+            out_image.putpixel((x, y), int(pix_sum / 3))
+
+    # Column summation
+    for x in range(2, out_image.width - 1):
+        for y in range(2, out_image.height - 1):
+            pix_sum = 0
+            for y1 in range(y - 1, y + 2):
+                pix_sum += out_image.getpixel((x, y1))
+            out_image.putpixel((x, y), int(pix_sum / 3))
+    return out_image
+
+
+# Super optimized version with optional kernel size
+def box_filter(image, kernel_size):
+    image = image.copy()
+    kernel_len = kernel_size // 2
+    padded_image = create_padding(image, kernel_len)
+
+    # Filter image in horizontal direction
+    for y in range(kernel_len, padded_image.height - kernel_len):
+        pix_sum = 0
+        for x in range(kernel_len, padded_image.width - kernel_len):
+            if x == kernel_len:
+                for x1 in range(x-kernel_len, x+1+kernel_len):
+                    pix_sum += padded_image.getpixel((x1, y))
+            else:
+                pix_sum -= padded_image.getpixel((x-1-kernel_len, y))
+                pix_sum += padded_image.getpixel((x+kernel_len, y))
+            image.putpixel((x - kernel_len, y - kernel_len), int(pix_sum / kernel_size))
+
+    # Filter image in vertical direction
+    padded_image = create_padding(image, kernel_len)
+    for x in range(kernel_len, padded_image.width - kernel_len):
+        pix_sum = 0
+        for y in range(kernel_len, padded_image.height - kernel_len):
+            if y == kernel_len:
+                for y1 in range(y-kernel_len, y+1+kernel_len):
+                    pix_sum += padded_image.getpixel((x, y1))
+            else:
+                pix_sum -= padded_image.getpixel((x, y-1-kernel_len))
+                pix_sum += padded_image.getpixel((x, y+kernel_len))
+            image.putpixel((x - kernel_len, y - kernel_len), int(pix_sum / kernel_size))
+    return image
+
+
+# Optimized version
+def contour_optimized(original_image, blurred_image):
+    out_image = original_image.copy()
+    for y in range(0, out_image.height):
+        for x in range(0, out_image.width):
+            new_pixel_value = original_image.getpixel((x, y)) - blurred_image.getpixel((x, y))
+            out_image.putpixel((x, y), new_pixel_value)
+    return out_image
+
+
+# Optimized version
+def sharpen_optimized(original_image, blurred_image):
+    out_image = original_image.copy()
+    for y in range(0, out_image.height):
+        for x in range(0, out_image.width):
+            new_pixel_value = 2 * original_image.getpixel((x, y)) - blurred_image.getpixel((x, y))
+            out_image.putpixel((x, y), new_pixel_value)
     return out_image
 
 
@@ -112,36 +180,26 @@ def sharpen(image):
     return out_image
 
 
-def box_filter2(image):
-    kernel_size = 3
-    kernel_len = kernel_size // 2
-    out_image = image.copy()
-    for x in range(kernel_len + 1, out_image.width - kernel_len):
-        for y in range(kernel_len + 1, out_image.height - kernel_len):
-            square = []
-            for x1 in range(x-kernel_len, x+1+kernel_len):
-                square_row = []
-                for y1 in range(y-kernel_len, y+1+kernel_len):
-                    square_row.append(image.getpixel((x1, y1)))
-                square.append(square_row)
-            pix = pixel_value_gray(square) if image.mode == "L" else calculate_pixel_value(square)
-            out_image.putpixel((x, y), pix)
-    return out_image
-
-
 if __name__ == '__main__':
     # This works for both rgb images and grayscale images!
     im_path = "C:/Users/larse/Documents/Skole/VisionPerception38/assets/"
     im = Image.open(im_path + "GoldenRetriever.jpg.crdownload")
-    im1 = Image.open(im_path + "einstein.jpg")
-    im.show()
+    #im = Image.open(im_path + "golden_retriever_full_hd.jpg")
+    im = im.convert("L")
 
-    # loop_through_pixels(im)
-    # new_im = black_white_converter(im, 120)
-    padded_im = create_padding(im)
-    new_im = box_filter2(padded_im)
-    new_im.show()
+    padded_im = create_padding(im, 1)
+    start = time.time()
     new_im = contour(padded_im)
+    end = time.time()
+    print("Execution time contour: {}".format(end - start))
     new_im.show()
-    new_im = sharpen(padded_im)
-    new_im.show()
+
+    start = time.time()
+    new_im = box_filter(im, 7)
+    contour_image = contour_optimized(im, new_im)
+    end = time.time()
+    print("Execution time optimized contour: {}".format(end - start))
+    contour_image.show()
+
+    sharpen_image = sharpen_optimized(im, new_im)
+    sharpen_image.show()
