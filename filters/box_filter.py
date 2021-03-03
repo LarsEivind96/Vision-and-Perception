@@ -1,17 +1,4 @@
 from PIL import Image
-import time
-
-
-def black_white_converter(image, threshold):
-    # Converts image to greyscale
-    out_image = image.convert("L")
-    for x in range(out_image.width):
-        for y in range(out_image.height):
-            if out_image.getpixel((x, y)) < threshold:
-                out_image.putpixel((x, y), 0)
-            else:
-                out_image.putpixel((x, y), 255)
-    return out_image
 
 
 def create_padding(image, padding_size):
@@ -24,68 +11,9 @@ def create_padding(image, padding_size):
     return out_image
 
 
-def calculate_pixel_value(square):
-    r = 0
-    g = 0
-    b = 0
-    for i in range(len(square)):
-        for j in range(len(square)):
-            r += square[i][j][0]
-            g += square[i][j][1]
-            b += square[i][j][2]
-    r = r // len(square) ** 2
-    g = g // len(square) ** 2
-    b = b // len(square) ** 2
-    pixel = (r, g, b)
-    return pixel
-
-
-def pixel_value_gray(square):
-    tot_sum = 0
-    length = len(square)
-    for i in range(length):
-        for j in range(length):
-            tot_sum += square[i][j]
-    return tot_sum // length ** 2
-
-
-def box_filter(image):
-    out_image = image.copy()
-    for x in range(2, out_image.width - 1):
-        for y in range(2, out_image.height - 1):
-            square = []
-            for x1 in range(x-1, x+2):
-                square_row = []
-                for y1 in range(y-1, y+2):
-                    square_row.append(image.getpixel((x1, y1)))
-                square.append(square_row)
-            pix = pixel_value_gray(square) if image.mode == "L" else calculate_pixel_value(square)
-            out_image.putpixel((x, y), pix)
-    return out_image
-
-
-# Optimized version
-def box_filter_optimized(image):
-    out_image = image.copy()
-    # Row summation
-    for y in range(2, out_image.height - 1):
-        for x in range(2, out_image.width - 1):
-            pix_sum = 0
-            for x1 in range(x-1, x+2):
-                pix_sum += image.getpixel((x1, y))
-            out_image.putpixel((x, y), int(pix_sum / 3))
-
-    # Column summation
-    for x in range(2, out_image.width - 1):
-        for y in range(2, out_image.height - 1):
-            pix_sum = 0
-            for y1 in range(y - 1, y + 2):
-                pix_sum += out_image.getpixel((x, y1))
-            out_image.putpixel((x, y), int(pix_sum / 3))
-    return out_image
-
-
 # Super optimized version with optional kernel size
+# This algorithm exploits that the box filter is a separable filter.
+# Instead of discarding the sum, the algorithm reuses the previous sum and updates it by subtracting away the old pixel and adding the new pixel in the blurring range
 def box_filter(image, kernel_size):
     image = image.copy()
     kernel_len = kernel_size // 2
@@ -118,7 +46,7 @@ def box_filter(image, kernel_size):
     return image
 
 
-# Optimized version
+# Creates a contour of an image by subtracting the blurred image from the original image.
 def contour_optimized(original_image, blurred_image):
     out_image = original_image.copy()
     for y in range(0, out_image.height):
@@ -128,7 +56,7 @@ def contour_optimized(original_image, blurred_image):
     return out_image
 
 
-# Optimized version
+# Sharpens an image by subtracting the blurred image from 2 times the original image.
 def sharpen_optimized(original_image, blurred_image):
     out_image = original_image.copy()
     for y in range(0, out_image.height):
@@ -138,9 +66,20 @@ def sharpen_optimized(original_image, blurred_image):
     return out_image
 
 
-def contour(image):
-    out_image = image.copy()
 
+
+def pixel_value_gray(square):
+    tot_sum = 0
+    length = len(square)
+    for i in range(length):
+        for j in range(length):
+            tot_sum += square[i][j]
+    return tot_sum // length ** 2
+
+
+# Not optimized at all
+def box_filter_unoptimized(image):
+    out_image = image.copy()
     for x in range(2, out_image.width - 1):
         for y in range(2, out_image.height - 1):
             square = []
@@ -149,57 +88,42 @@ def contour(image):
                 for y1 in range(y-1, y+2):
                     square_row.append(image.getpixel((x1, y1)))
                 square.append(square_row)
-            if image.mode == "L":
-                pix = pixel_value_gray(square)
-                new_tuple = image.getpixel((x, y)) - pix
-            else:
-                pix = calculate_pixel_value(square)
-                new_tuple = (image.getpixel((x, y))[0] - pix[0], image.getpixel((x, y))[1] - pix[1],
-                             image.getpixel((x, y))[2] - pix[2])
-            out_image.putpixel((x, y), new_tuple)
+            pix = pixel_value_gray(square)
+            out_image.putpixel((x, y), pix)
     return out_image
 
 
-def sharpen(image):
+# Minor optimized version
+def box_filter_minor_optimization(image):
     out_image = image.copy()
+    # Row summation
+    for y in range(2, out_image.height - 1):
+        for x in range(2, out_image.width - 1):
+            pix_sum = 0
+            for x1 in range(x-1, x+2):
+                pix_sum += image.getpixel((x1, y))
+            out_image.putpixel((x, y), int(pix_sum / 3))
+
+    # Column summation
     for x in range(2, out_image.width - 1):
         for y in range(2, out_image.height - 1):
-            square = []
-            for x1 in range(x-1, x+2):
-                square_row = []
-                for y1 in range(y-1, y+2):
-                    square_row.append(image.getpixel((x1, y1)))
-                square.append(square_row)
-            if image.mode == "L":
-                pix = pixel_value_gray(square)
-                new_tuple = 2 * image.getpixel((x, y)) - pix
-            else:
-                pix = calculate_pixel_value(square)
-                new_tuple = (2*image.getpixel((x, y))[0] - pix[0], 2*image.getpixel((x, y))[1] - pix[1], 2*image.getpixel((x, y))[2] - pix[2])
-            out_image.putpixel((x, y), new_tuple)
+            pix_sum = 0
+            for y1 in range(y - 1, y + 2):
+                pix_sum += out_image.getpixel((x, y1))
+            out_image.putpixel((x, y), int(pix_sum / 3))
     return out_image
 
 
 if __name__ == '__main__':
     # This works for both rgb images and grayscale images!
     im_path = "C:/Users/larse/Documents/Skole/VisionPerception38/assets/"
-    im = Image.open(im_path + "GoldenRetriever.jpg.crdownload")
-    #im = Image.open(im_path + "golden_retriever_full_hd.jpg")
-    im = im.convert("L")
+    im = Image.open(im_path + "einstein.jpg")
+    if not im.mode == "L":
+        im = im.convert("L")
 
-    padded_im = create_padding(im, 1)
-    start = time.time()
-    new_im = contour(padded_im)
-    end = time.time()
-    print("Execution time contour: {}".format(end - start))
-    new_im.show()
-
-    start = time.time()
-    new_im = box_filter(im, 7)
-    contour_image = contour_optimized(im, new_im)
-    end = time.time()
-    print("Execution time optimized contour: {}".format(end - start))
+    blurred_image = box_filter(im, 5)
+    blurred_image.show()
+    contour_image = contour_optimized(im, blurred_image)
     contour_image.show()
-
-    sharpen_image = sharpen_optimized(im, new_im)
+    sharpen_image = sharpen_optimized(im, blurred_image)
     sharpen_image.show()
