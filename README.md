@@ -7,7 +7,7 @@ The box blur is the easiest blurring algorithm, where each pixel in the resultin
 
 My algorithm is optimized in a number of ways, compared to the basic box blur algorithm:
 1. It is possible to choose kernel size. A large kernel leads to a very blurred image, and a small kernel leads to an image quite similar to the original image.
-2. The box blur is a separable filter. The complexity is lowered from O(Nr^2) to O(Nr) by performing to 1D passes of the separable filter, one horizontal and one vertical. 
+2. The box blur is a separable filter. The complexity is lowered from O(Nr^2) to O(Nr) by performing two 1D passes of the separable filter, one horizontal and one vertical. 
 3. Instead of discarding the sum for each pixel, the algorithm re-uses the previous sum and updates it by subtracting away the old pixel and adding the new pixel in the blurring range. This lowers the complexity from O(Nr) to O(N)
 
 ## Gaussian Blur
