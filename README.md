@@ -14,7 +14,7 @@ My algorithm is optimized in a number of ways, compared to the basic box blur al
 The Gaussian blur is a blurring algorithm used as a preprocessing stage in computer vision algorithms in order to enhance image structures at different scales. It differs from the box blur algorithm in the way that the pixels close to the current pixel are weighted greater than the pixels far from the current pixel. It is common to use the gaussian blur algorithm with edge detection. 
 
 ## Edge detection (Contour)
-My edge detection algortithm is as simple as it gets. It takes the original image and the blurred image (box blur / gaussian blur etc.), and outputs the difference between these two images. The result is an image only consisting of edges! On pixel level, the algorithm is as follows: ***P(x, y) = OP(x, y) - BP(x, y)***, where P is the resulting pixel value, OP is the original pixel value and BP is the blurred pixel value. 
+My edge detection algorithm is as simple as it gets. It takes the original image and the blurred image (box blur / gaussian blur etc.), and outputs the difference between these two images. The result is an image only consisting of edges! On pixel level, the algorithm is as follows: ***P(x, y) = OP(x, y) - BP(x, y)***, where P is the resulting pixel value, OP is the original pixel value and BP is the blurred pixel value. 
 
 ## Sharpening
 My sharpening algorithm is as simple as the edge detection algorithm. Basically it takes the original image and adds the edge-detected image. On pixel level, the algorithm is as follows: ***P(x, y) = 2 * OP(x, y) - BP(x, y)***, where P is the resulting pixel value, OP is the original pixel value and BP is the blurred pixel value. 
