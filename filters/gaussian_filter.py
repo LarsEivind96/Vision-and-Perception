@@ -30,10 +30,10 @@ def create_padding(image, kernel_len):
 
 
 # Gaussian optimized by performing blur in horizontal and vertical direction seperately.
-def convolution_optimized(image, kernel, average=False, verbose=True):
+def gaussian_filter(image, kernel_size):
+    kernel = gaussian_kernel_1D(kernel_size, sigma=np.sqrt(kernel_size))
     kernel_length = len(kernel) // 2
     kernel_sum = np.sum(kernel)
-    print(kernel_sum)
     output = image.copy()
 
     # Create padding
@@ -65,11 +65,11 @@ if __name__ == '__main__':
     if not im.mode == "L":
         im = im.convert("L")
 
-    gaussian_1D = gaussian_kernel_1D(5, sigma=np.sqrt(5), verbose=True)
-    print("1 dimensional gaussian: {}".format(gaussian_1D))
+    #gaussian_1D = gaussian_kernel_1D(5, sigma=np.sqrt(5), verbose=True)
+    #print("1 dimensional gaussian: {}".format(gaussian_1D))
 
     start = time.time()
-    image = convolution_optimized(im, gaussian_1D, average=False, verbose=True)
+    image = gaussian_filter(im, 5)
     end = time.time()
     print("Execution time optimized gaussian: {}".format(end - start))
     image.show()
