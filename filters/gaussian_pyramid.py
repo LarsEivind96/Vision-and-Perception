@@ -53,6 +53,52 @@ def up_scale(image):
     return image
 
 
+# Not functioning properly
+def up_scale_bi_linear(image):
+    # Converts the image to a numpy array for easier manipulation.
+    im_array = np.array(image)
+    image_row, image_col = im_array.shape
+
+    # For each column, add another one.
+    for x in range(image_col - 1, -1, -1):
+        image_row, image_col = im_array.shape
+
+        if x == 0:
+            new_col = im_array[:, x]
+        else:
+            new_col = np.zeros(image_row)
+            left_col = im_array[:, x-1]
+            right_col = im_array[:, x]
+            new_col[0] = (left_col[0] + right_col[0]) / 2
+            for i in range(1, len(new_col) - 1):
+                new_col[i] = (int(left_col[i-1]) + 2*int(left_col[i]) + int(left_col[i+1]) + int(right_col[i-1]) + 2*int(right_col[i]) + int(right_col[i+1])) / 8
+            new_col[-1] = (left_col[-1] + right_col[-1]) / 2
+
+        im_array = np.c_[im_array[:, 0:x], new_col, im_array[:, x:image_col]]
+
+    for y in range(image_row - 1, -1, -1):
+        image_row, image_col = im_array.shape
+        if y == 0:
+            new_row = im_array[y:y+1, :]
+        else:
+            new_row = im_array[y-1:y, :]
+            left_row = im_array[y-1:y, :]
+            right_row = im_array[y:y+1, :]
+            new_row[0] = (left_row[0] + right_row[0]) / 2
+            for i in range(1, len(new_row) - 1):
+                new_row[i] = (int(left_row[i - 1]) + 2*int(left_row[i]) + int(left_row[i + 1]) + int(right_row[i - 1]) + int(
+                    right_row[i + 1]) + 2*right_row[i]) / 8
+            new_row[-1] = (left_row[-1] + right_row[-1]) / 2
+
+        first_part = im_array[0:y, :]
+        last_part = im_array[y:image_row, :]
+        im_array = np.r_[first_part, new_row, last_part]
+
+    # Converts the image array back to an image
+    image = Image.fromarray(im_array)
+    return image
+
+
 def create_pyramid(image):
     rows, cols = image.size
     array_of_images = [image]
@@ -113,11 +159,14 @@ if __name__ == '__main__':
     # Convert to grayscale image
     if not im.mode == "L":
         im = im.convert("L")
-    # im.show()
+    im.show()
 
     # compressed_images = create_pyramid(im)
     compressed_lpl_images = create_laplacian_pyramid(im)
     inverse_laplace(compressed_lpl_images)
-
+    """image = up_scale(im)
+    image.show()
+    image = up_scale_bi_linear(im)
+    image.show()"""
     # upscale_image = upscale_x_times(compressed_lpl_images[len(compressed_lpl_images) - 1], 4)
     # upscale_image.show()
